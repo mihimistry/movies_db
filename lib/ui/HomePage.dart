@@ -10,6 +10,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:movies_db/http/ApiManager.dart';
 import 'package:movies_db/http/MovieRepository.dart';
+import 'package:movies_db/utils/AppUtils.dart';
 import 'package:movies_db/utils/AppWidgets.dart';
 import 'package:movies_db/utils/Constants.dart';
 import '../model/MovieListResponse.dart';
@@ -175,7 +176,7 @@ class HomePageState extends State<HomePage> {
                                         ],
                                       ),
                                       progressColor:
-                                          _setProgressColor(movie.voteAverage!),
+                                          AppUtils.setVotingProgressColor(movie.voteAverage!),
                                     ),
                                     SizedBox(
                                       height: 10,
@@ -277,15 +278,6 @@ class HomePageState extends State<HomePage> {
         // Horizontal List
       ],
     );
-  }
-
-  _setProgressColor(num? voteAverage) {
-    if (voteAverage! < 7.0 && voteAverage > 3.0)
-      return Colors.orange;
-    else if (voteAverage < 3.0)
-      return Colors.redAccent;
-    else
-      return Colors.green;
   }
 
   _headingBox(String heading) {
