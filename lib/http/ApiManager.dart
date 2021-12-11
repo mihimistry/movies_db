@@ -22,7 +22,6 @@ class ApiManager {
       final response = await get(uri);
 
       print('Status code: ${response.statusCode}');
-      print('Headers: ${response.headers}');
       print('Body: ${response.body}');
 
       responseJson = _returnResponse(response);

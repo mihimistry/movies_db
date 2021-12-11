@@ -227,7 +227,7 @@ class HomePageState extends State<HomePage> {
         Container(
             margin: EdgeInsets.only(left: 20, right: 20, top: 40, bottom: 20),
             alignment: Alignment.centerLeft,
-            child: _headingBox(heading)),
+            child: AppWidgets.listHeadingBox(context,heading)),
         // List Heading
         Container(
             height: 250.0,
@@ -276,26 +276,6 @@ class HomePageState extends State<HomePage> {
                       });
                 }))
         // Horizontal List
-      ],
-    );
-  }
-
-  _headingBox(String heading) {
-    const double _headingHeight = 20;
-    return Row(
-      children: [
-        Container(
-            margin: EdgeInsets.only(right: 10),
-            color: Colors.green,
-            height: _headingHeight,
-            width: 2),
-        Text(
-          heading,
-          style: TextStyle(
-              fontSize: _headingHeight,
-              fontWeight: FontWeight.bold,
-              color: AppWidgets.textColor(context)),
-        ),
       ],
     );
   }

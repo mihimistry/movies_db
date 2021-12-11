@@ -6,5 +6,7 @@ class Constants {
   static const GET_NOW_PLAYING = "movie/now_playing";
   static const GET_MOST_POPULAR = "movie/popular";
   static const GET_UPCOMING_MOVIES = "movie/upcoming";
-  static const GET_MOVIE_DETAILS = "/movie";
+  static const GET_MOVIE_DETAILS = "movie";
+  static const GET_MOVIE_CREDITS = "credits";  //"/movie/{movie_id}/credits"
+
 }

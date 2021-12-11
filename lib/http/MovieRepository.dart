@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:movies_db/http/ApiManager.dart';
+import 'package:movies_db/model/movie_credits_response.dart';
 import 'package:movies_db/model/movie_detail_response.dart';
 import 'package:movies_db/utils/Constants.dart';
 
@@ -22,6 +23,12 @@ class MovieRepository {
     final response =
         await _helper.getResponse("${Constants.GET_MOVIE_DETAILS}/$movieId");
     return MovieDetailResponse.fromJson(response);
+  }
+
+  Future<MovieCreditsResponse> getMovieCredits(movieId) async {
+    final response =
+    await _helper.getResponse("${Constants.GET_MOVIE_DETAILS}/$movieId/${Constants.GET_MOVIE_CREDITS}");
+    return MovieCreditsResponse.fromJson(response);
   }
 
   Future<MovieListResponse> getMovieList(requestedUrl) async {
