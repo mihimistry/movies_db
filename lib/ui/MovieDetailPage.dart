@@ -1,9 +1,12 @@
+import 'package:buttons_tabbar/buttons_tabbar.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:movies_db/http/MovieRepository.dart';
 import 'package:movies_db/model/movie_credits_response.dart';
 import 'package:movies_db/model/movie_detail_response.dart';
+import 'package:movies_db/model/movie_images_response.dart';
+import 'package:movies_db/model/movie_videos_response.dart';
 import 'package:movies_db/utils/AppTheme.dart';
 import 'package:movies_db/utils/AppUtils.dart';
 import 'package:movies_db/utils/AppWidgets.dart';
@@ -11,6 +14,8 @@ import 'package:intl/intl.dart';
 import 'package:movies_db/utils/Constants.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 import 'package:readmore/readmore.dart';
+import 'package:shimmer/shimmer.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
 class MovieDetailPage extends StatefulWidget {
   final int id;
@@ -21,19 +26,29 @@ class MovieDetailPage extends StatefulWidget {
   _MovieDetailPageState createState() => _MovieDetailPageState(id);
 }
 
-class _MovieDetailPageState extends State<MovieDetailPage> {
+class _MovieDetailPageState extends State<MovieDetailPage>
+    with SingleTickerProviderStateMixin {
   var movieId;
 
   _MovieDetailPageState(this.movieId);
 
   late Future<MovieDetailResponse> _movieDetail;
   late Future<MovieCreditsResponse> _movieCredits;
+  late Future<MovieVideosResponse> _movieVideos;
+  late Future<MovieImagesResponse> _movieImages;
+  late MovieRepository _movieRepository;
+
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
-    _movieDetail = MovieRepository().getMovieDetails(movieId);
-    _movieCredits = MovieRepository().getMovieCredits(movieId);
+    _movieRepository = MovieRepository();
+    _movieDetail = _movieRepository.getMovieDetails(movieId);
+    _movieCredits = _movieRepository.getMovieCredits(movieId);
+    _movieVideos = _movieRepository.getMovieVideos(movieId);
+    _movieImages = _movieRepository.getMovieImages(movieId);
+    _tabController = TabController(length: 2, vsync: this);
   }
 
   @override
@@ -45,9 +60,8 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
         future: _movieDetail,
         builder: (context, snapshot) {
           if (snapshot.hasData) {
-            return _movieDetailLayout(context, snapshot.data);
+            return _movieDetailLayout(context, snapshot.data!);
           }
-
           return AppWidgets.progressIndicator();
         },
       )),
@@ -56,11 +70,12 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
 
   Widget _movieDetailLayout(
     BuildContext context,
-    MovieDetailResponse? movie,
+    MovieDetailResponse movie,
   ) {
-    var _movieTitle = movie?.title;
-    var _releaseYear =
-        DateFormat.y().format(DateTime.parse(movie!.releaseDate!));
+    var _movieTitle = movie.title;
+    var _releaseYear = "";
+    if (movie.releaseDate != null)
+      _releaseYear = DateFormat.y().format(DateTime.parse(movie.releaseDate!));
     var _movieRating = AppUtils.getCertificateRating(movie.adult ?? false);
     var _runtime = AppUtils.getRuntimeInHrMin(movie.runtime ?? 0);
 
@@ -82,7 +97,7 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
               height: 10,
             ),
             Text(
-              "$_movieRating    •   $_runtime",
+              "$_movieRating    $_runtime",
               style:
                   TextStyle(fontSize: 15, color: AppWidgets.textColor(context)),
             ),
@@ -94,14 +109,73 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
             _overview(movie.overview),
           ]),
         ),
+        Container(
+          margin: EdgeInsets.only(left: 20,top: 20,right: 20,bottom: 30),
+          decoration: BoxDecoration(
+            color: Colors.grey[300],
+            borderRadius: BorderRadius.circular(
+              25.0,
+            ),
+          ),
+          child: DefaultTabController(
+              length: 2,
+              child: TabBar(
+                  controller: _tabController,
+                  indicator: BoxDecoration(
+                    borderRadius: BorderRadius.circular(
+                      25.0,
+                    ),
+                    color: Colors.green,
+                  ),
+                  unselectedLabelColor: Colors.black87,
+                  tabs: [
+                    Tab(
+                      icon: Icon(Icons.video_library),
+                    ),
+                    Tab(
+                      icon: Icon(Icons.photo_library),
+                    ),
+                  ])),
+        ),
+        SizedBox(
+          height: 250,
+          child: TabBarView(
+            controller: _tabController,
+            children: [
+              FutureBuilder<MovieVideosResponse>(
+                future: _movieVideos,
+                builder: (context, snapshot) {
+                  if (snapshot.hasData) {
+                    return _movieVideoListHorizontal(
+                        "Media", snapshot.data?.results ?? []);
+                  }
+                  return AppWidgets.progressIndicator();
+                },
+              ),
+              FutureBuilder<MovieImagesResponse>(
+                future: _movieImages,
+                builder: (context, snapshot) {
+                  if (snapshot.hasData) {
+                    return _movieImagesListHorizontal(
+                        "Media",
+                        snapshot.data?.backdrops ?? [],
+                        snapshot.data?.posters ?? []);
+                  }
+                  return AppWidgets.progressIndicator();
+                },
+              )
+            ],
+          ),
+        ),
         FutureBuilder<MovieCreditsResponse>(
           future: _movieCredits,
           builder: (context, snapshot) {
             if (snapshot.hasData) {
-              return _movieListViewHorizontal(
-                  "Cast", snapshot.data?.cast ?? []);
+              return _movieCastListHorizontal(
+                "Cast",
+                snapshot.data?.cast ?? [],
+              );
             }
-
             return AppWidgets.progressIndicator();
           },
         )
@@ -208,7 +282,56 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
         ],
       );
 
-  _movieListViewHorizontal(String heading, List<Cast> movieCastList) {
+  _movieVideoListHorizontal(String heading, List<Results> movieVideosList) {
+    return Column(
+      children: [
+        // Container(
+        //     margin: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 20),
+        //     alignment: Alignment.centerLeft,
+        //     child: AppWidgets.listHeadingBox(context, heading)),
+        // List Heading
+        Container(
+            height: 250.0,
+            child: ListView.builder(
+                itemCount: movieVideosList.length,
+                scrollDirection: Axis.horizontal,
+                itemBuilder: (context, index) {
+                  return Container(
+                      margin: EdgeInsets.only(left: 20),
+                      width: 300.0,
+                      height: 200.0,
+                      child: InkWell(
+                          child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: YoutubePlayer(
+                              controller: _youtubePlayerController(
+                                  movieVideosList[index].key),
+                              showVideoProgressIndicator: true,
+                            ),
+                          ),
+                          //PopularPoster
+                          SizedBox(height: 10),
+                          Text(
+                            "${movieVideosList[index].name}",
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: AppWidgets.textColor(context)),
+                          ),
+                        ],
+                      )));
+                }))
+        // Horizontal List
+      ],
+    );
+  }
+
+  _movieCastListHorizontal(String heading, List<Cast> movieCastList) {
     return Column(
       children: [
         Container(
@@ -265,6 +388,72 @@ class _MovieDetailPageState extends State<MovieDetailPage> {
                                 color: AppWidgets.textColor(context)),
                           )
                           //Character Name
+                        ],
+                      )));
+                }))
+        // Horizontal List
+      ],
+    );
+  }
+
+  _mediaListItemView(bool bool, Results videoResult) {
+    if (bool)
+      return;
+    else
+      _pictureView();
+  }
+
+  _youtubePlayerController(String? key) => YoutubePlayerController(
+        initialVideoId: key ?? "",
+        flags: YoutubePlayerFlags(
+            disableDragSeek: true,
+            autoPlay: false,
+            mute: true,
+            useHybridComposition: true),
+      );
+
+  void _pictureView() {}
+
+  _movieImagesListHorizontal(String heading, List<Backdrops> backdropImageList,
+      List<Posters> posterImageList) {
+    List<Backdrops> _imageList = [];
+
+    _imageList.addAll(backdropImageList);
+
+    return Column(
+      children: [
+        // Container(
+        //     margin: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 20),
+        //     alignment: Alignment.centerLeft,
+        //     child: AppWidgets.listHeadingBox(context, heading)),
+        // List Heading
+        Container(
+            height: 250.0,
+            child: ListView.builder(
+                itemCount: _imageList.length,
+                scrollDirection: Axis.horizontal,
+                itemBuilder: (context, index) {
+                  return Container(
+                      margin: EdgeInsets.only(left: 20),
+                      width: 300.0,
+                      height: 200.0,
+                      child: InkWell(
+                          child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: CachedNetworkImage(
+                                imageUrl:
+                                    "${Constants.imageUrlPrefix}/${_imageList[index].filePath}",
+                                placeholder: (context, url) =>
+                                    AppWidgets.progressIndicator(),
+                                errorWidget: (context, url, error) => Container(
+                                      width: 100.0,
+                                      height: 150.0,
+                                      child: Icon(Icons.error),
+                                    )),
+                          ),
                         ],
                       )));
                 }))

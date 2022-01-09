@@ -13,6 +13,7 @@ class ApiResponse<T> {
   String toString() {
     return "Status : $status \n Message : $message \n Data : $data";
   }
+
 }
 
 enum Status { LOADING, COMPLETED, ERROR }

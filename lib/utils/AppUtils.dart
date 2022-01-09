@@ -8,7 +8,7 @@ class AppUtils {
   static String getRuntimeInHrMin(int _runtime) {
     var _hours = _runtime ~/ 60;
     var _mins = _runtime - (_hours * 60);
-    return "${_hours}h${_mins}m";
+    return _runtime > 0 ? "•   ${_hours}h${_mins}m" : "";
   }
 
   static Color setVotingProgressColor(num? voteAverage) {

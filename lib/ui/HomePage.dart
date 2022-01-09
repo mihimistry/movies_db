@@ -8,6 +8,8 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/animation.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:movies_db/cubit/movie_cubit.dart';
 import 'package:movies_db/http/ApiManager.dart';
 import 'package:movies_db/http/MovieRepository.dart';
 import 'package:movies_db/utils/AppUtils.dart';
@@ -27,20 +29,25 @@ class HomePageState extends State<HomePage> {
   int _current = 0;
   final CarouselController _controller = CarouselController();
 
-  late Future<MovieListResponse> _nowPlayingMovies;
+  // late Future<MovieListResponse> _nowPlayingMovies;
   late Future<MovieListResponse> _mostPopularMovies;
   late Future<MovieListResponse> _upcomingMovies;
 
   @override
   void initState() {
     super.initState();
-    _nowPlayingMovies = MovieRepository().getNowPlayingMovies();
+
+    // _nowPlayingMovies = MovieRepository().getNowPlayingMovies();
+
     _mostPopularMovies = MovieRepository().getMostPopularMovies();
     _upcomingMovies = MovieRepository().getUpcomingMovies();
   }
 
   @override
   Widget build(BuildContext context) {
+    final _movieCubit = BlocProvider.of<MovieCubit>(context);
+    _movieCubit.getNowPlayingMovies();
+
     return Scaffold(
       appBar: AppWidgets.appBar(context, "MoviesDb"),
       body: Builder(builder: (context) => homePageLayout()),
@@ -59,42 +66,47 @@ class HomePageState extends State<HomePage> {
   }
 
   _nowPlayingSlider() {
-    return FutureBuilder<MovieListResponse>(
-        future: _nowPlayingMovies,
-        builder: (context, snapshot) {
-          if (snapshot.hasData)
-            return Stack(children: [
-              SizedBox(
-                height: 10,
-              ),
-              Stack(
-                alignment: Alignment.bottomRight,
-                children: [
-                  _setupNowPlayingSlider(snapshot.data!.results),
-                  //_pagerIndicator(snapshot.data!.results), //Pager Indicator
-                ],
-              ),
-              //SliderSetup
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(5),
-                    decoration: BoxDecoration(
-                        shape: BoxShape.rectangle, color: Colors.green),
-                    child: Text(
-                      "Now playing",
-                      style: TextStyle(color: Colors.white),
-                    ),
-                    margin: EdgeInsets.symmetric(vertical: 10),
-                  )
-                ],
-              ),
-              //Now playing
-            ]);
-          else
-            return Center(child: AppWidgets.progressIndicator());
-        });
+    return BlocBuilder<MovieCubit, MovieState>(builder: (context, state) {
+      if (state is ReceivedState)
+        return FutureBuilder<MovieListResponse>(
+            future: state.props as Future<MovieListResponse>,
+            builder: (context, snapshot) {
+              if (snapshot.hasData)
+                return Stack(children: [
+                  SizedBox(
+                    height: 10,
+                  ),
+                  Stack(
+                    alignment: Alignment.bottomRight,
+                    children: [
+                      _setupNowPlayingSlider(snapshot.data!.results),
+                      //_pagerIndicator(snapshot.data!.results), //Pager Indicator
+                    ],
+                  ),
+                  //SliderSetup
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(5),
+                        decoration: BoxDecoration(
+                            shape: BoxShape.rectangle, color: Colors.green),
+                        child: Text(
+                          "Now playing",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        margin: EdgeInsets.symmetric(vertical: 10),
+                      )
+                    ],
+                  ),
+                  //Now playing
+                ]);
+              else
+                return Center(child: AppWidgets.progressIndicator());
+            });
+      else
+        return Center(child: AppWidgets.progressIndicator());
+    });
   }
 
   _setupNowPlayingSlider(List<Results>? results) => CarouselSlider(
@@ -176,7 +188,8 @@ class HomePageState extends State<HomePage> {
                                         ],
                                       ),
                                       progressColor:
-                                          AppUtils.setVotingProgressColor(movie.voteAverage!),
+                                          AppUtils.setVotingProgressColor(
+                                              movie.voteAverage!),
                                     ),
                                     SizedBox(
                                       height: 10,
@@ -227,7 +240,7 @@ class HomePageState extends State<HomePage> {
         Container(
             margin: EdgeInsets.only(left: 20, right: 20, top: 40, bottom: 20),
             alignment: Alignment.centerLeft,
-            child: AppWidgets.listHeadingBox(context,heading)),
+            child: AppWidgets.listHeadingBox(context, heading)),
         // List Heading
         Container(
             height: 250.0,
