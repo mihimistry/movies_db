@@ -64,6 +64,7 @@ class Crew {
     department = json['department'];
     job = json['job'];
   }
+
   bool? adult;
   int? gender;
   int? id;

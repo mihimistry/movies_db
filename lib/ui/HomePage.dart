@@ -3,15 +3,10 @@ import 'dart:ffi';
 import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:carousel_slider/carousel_controller.dart';
 import 'package:carousel_slider/carousel_slider.dart';
-import 'package:flutter/animation.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:movies_db/cubit/movie_cubit.dart';
-import 'package:movies_db/http/ApiManager.dart';
-import 'package:movies_db/http/MovieRepository.dart';
 import 'package:movies_db/utils/AppUtils.dart';
 import 'package:movies_db/utils/AppWidgets.dart';
 import 'package:movies_db/utils/Constants.dart';
@@ -29,24 +24,21 @@ class HomePageState extends State<HomePage> {
   int _current = 0;
   final CarouselController _controller = CarouselController();
 
-  // late Future<MovieListResponse> _nowPlayingMovies;
-  late Future<MovieListResponse> _mostPopularMovies;
-  late Future<MovieListResponse> _upcomingMovies;
+  MovieListResponse? _nowPlayingMovies;
+  MovieListResponse? _mostPopularMovies;
+  MovieListResponse? _upcomingMovies;
 
   @override
   void initState() {
     super.initState();
-
-    // _nowPlayingMovies = MovieRepository().getNowPlayingMovies();
-
-    _mostPopularMovies = MovieRepository().getMostPopularMovies();
-    _upcomingMovies = MovieRepository().getUpcomingMovies();
   }
 
   @override
   Widget build(BuildContext context) {
     final _movieCubit = BlocProvider.of<MovieCubit>(context);
     _movieCubit.getNowPlayingMovies();
+    _movieCubit.getMostPopularMovies();
+    _movieCubit.getUpcomingMovies();
 
     return Scaffold(
       appBar: AppWidgets.appBar(context, "MoviesDb"),
@@ -58,55 +50,67 @@ class HomePageState extends State<HomePage> {
     return ListView(
       children: [
         SizedBox(height: 20),
-        _nowPlayingSlider(),
-        _movieListViewHorizontal("Popular", _mostPopularMovies),
-        _movieListViewHorizontal("Upcoming", _upcomingMovies)
+        BlocBuilder<MovieCubit, MovieState>(builder: (context, state) {
+          if (state is ReceivedState &&
+              state.props[REQUEST_CODE] == NOW_PLAYING_RC) {
+            _nowPlayingMovies = state.props[RESPONSE];
+            return _nowPlayingSlider(_nowPlayingMovies);
+          } else
+            return _nowPlayingSlider(_nowPlayingMovies);
+        }), //Now Playing Slider
+        BlocBuilder<MovieCubit, MovieState>(builder: (context, state) {
+          if (state is ReceivedState &&
+              state.props[REQUEST_CODE] == MOST_POPULAR_MOVIES_RC) {
+            _mostPopularMovies=state.props[RESPONSE];
+            return _movieListViewHorizontal("Popular", _mostPopularMovies);
+          } else
+            return _movieListViewHorizontal("Popular", _mostPopularMovies);
+        }), // Popular Movie List
+        BlocBuilder<MovieCubit, MovieState>(builder: (context, state) {
+          if (state is ReceivedState &&
+              state.props[REQUEST_CODE] == UPCOMING_MOVIES_RC) {
+            _upcomingMovies=state.props[RESPONSE];
+            return _movieListViewHorizontal("Upcoming", _upcomingMovies);
+          } else
+            return _movieListViewHorizontal("Upcoming", _upcomingMovies);
+        }) // Upcoming Movie List
       ],
     );
   }
 
-  _nowPlayingSlider() {
-    return BlocBuilder<MovieCubit, MovieState>(builder: (context, state) {
-      if (state is ReceivedState)
-        return FutureBuilder<MovieListResponse>(
-            future: state.props as Future<MovieListResponse>,
-            builder: (context, snapshot) {
-              if (snapshot.hasData)
-                return Stack(children: [
-                  SizedBox(
-                    height: 10,
-                  ),
-                  Stack(
-                    alignment: Alignment.bottomRight,
-                    children: [
-                      _setupNowPlayingSlider(snapshot.data!.results),
-                      //_pagerIndicator(snapshot.data!.results), //Pager Indicator
-                    ],
-                  ),
-                  //SliderSetup
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Container(
-                        padding: EdgeInsets.all(5),
-                        decoration: BoxDecoration(
-                            shape: BoxShape.rectangle, color: Colors.green),
-                        child: Text(
-                          "Now playing",
-                          style: TextStyle(color: Colors.white),
-                        ),
-                        margin: EdgeInsets.symmetric(vertical: 10),
-                      )
-                    ],
-                  ),
-                  //Now playing
-                ]);
-              else
-                return Center(child: AppWidgets.progressIndicator());
-            });
-      else
-        return Center(child: AppWidgets.progressIndicator());
-    });
+  _nowPlayingSlider(MovieListResponse? response) {
+    if (response != null)
+      return Stack(children: [
+        SizedBox(
+          height: 10,
+        ),
+        Stack(
+          alignment: Alignment.bottomRight,
+          children: [
+            _setupNowPlayingSlider(response.results),
+            //_pagerIndicator(snapshot.data!.results), //Pager Indicator
+          ],
+        ),
+        //SliderSetup
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Container(
+              padding: EdgeInsets.all(5),
+              decoration:
+                  BoxDecoration(shape: BoxShape.rectangle, color: Colors.green),
+              child: Text(
+                "Now playing",
+                style: TextStyle(color: Colors.white),
+              ),
+              margin: EdgeInsets.symmetric(vertical: 10),
+            )
+          ],
+        ),
+        //Now playing
+      ]);
+    else
+      return Center(child: AppWidgets.progressIndicator());
   }
 
   _setupNowPlayingSlider(List<Results>? results) => CarouselSlider(
@@ -233,64 +237,62 @@ class HomePageState extends State<HomePage> {
         }).toList(),
       );
 
-  _movieListViewHorizontal(
-      String heading, Future<MovieListResponse> movieList) {
-    return Column(
-      children: [
-        Container(
-            margin: EdgeInsets.only(left: 20, right: 20, top: 40, bottom: 20),
-            alignment: Alignment.centerLeft,
-            child: AppWidgets.listHeadingBox(context, heading)),
-        // List Heading
-        Container(
-            height: 250.0,
-            child: FutureBuilder<MovieListResponse>(
-                future: movieList,
-                builder: (context, snapshot) {
-                  return ListView.builder(
-                      itemCount: snapshot.data?.results?.length,
-                      scrollDirection: Axis.horizontal,
-                      itemBuilder: (context, index) {
-                        return Container(
-                            margin: EdgeInsets.only(left: 20),
-                            width: 120.0,
-                            height: 150.0,
-                            child: InkWell(
-                                onTap: () {
-                                  _openMovieDetailScreen(
-                                      snapshot.data?.results?[index].id);
-                                },
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(10),
-                                      child: CachedNetworkImage(
-                                        imageUrl:
-                                            "${Constants.imageUrlPrefix}/${snapshot.data?.results?[index].posterPath}",
-                                        placeholder: (context, url) =>
-                                            AppWidgets.progressIndicator(),
-                                        errorWidget: (context, url, error) =>
-                                            Icon(Icons.error),
-                                      ),
-                                    ),
-                                    //PopularPoster
-                                    SizedBox(height: 10),
-                                    Text(
-                                      "${snapshot.data?.results![index].title}",
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                          fontSize: 15,
-                                          color: AppWidgets.textColor(context)),
-                                    )
-                                  ],
-                                )));
-                      });
-                }))
-        // Horizontal List
-      ],
-    );
+  _movieListViewHorizontal(String heading, MovieListResponse? response) {
+    if (response != null)
+      return Column(
+        children: [
+          Container(
+              margin: EdgeInsets.only(left: 20, right: 20, top: 40, bottom: 20),
+              alignment: Alignment.centerLeft,
+              child: AppWidgets.listHeadingBox(context, heading)),
+          // List Heading
+          Container(
+              height: 250.0,
+              child: ListView.builder(
+                  itemCount: response.results?.length,
+                  scrollDirection: Axis.horizontal,
+                  itemBuilder: (context, index) {
+                    return Container(
+                        margin: EdgeInsets.only(left: 20),
+                        width: 120.0,
+                        height: 150.0,
+                        child: InkWell(
+                            onTap: () {
+                              _openMovieDetailScreen(
+                                  response.results?[index].id);
+                            },
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: CachedNetworkImage(
+                                    imageUrl:
+                                        "${Constants.imageUrlPrefix}/${response.results?[index].posterPath}",
+                                    placeholder: (context, url) =>
+                                        AppWidgets.progressIndicator(),
+                                    errorWidget: (context, url, error) =>
+                                        Icon(Icons.error),
+                                  ),
+                                ),
+                                //PopularPoster
+                                SizedBox(height: 10),
+                                Text(
+                                  "${response.results![index].title}",
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                      fontSize: 15,
+                                      color: AppWidgets.textColor(context)),
+                                )
+                              ],
+                            )));
+                  }))
+          // Horizontal List
+        ],
+      );
+    else
+      return Center(child: AppWidgets.progressIndicator());
   }
 
   void _openMovieDetailScreen(int? id) {

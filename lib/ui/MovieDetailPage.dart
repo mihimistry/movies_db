@@ -1,4 +1,3 @@
-import 'package:buttons_tabbar/buttons_tabbar.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -7,14 +6,12 @@ import 'package:movies_db/model/movie_credits_response.dart';
 import 'package:movies_db/model/movie_detail_response.dart';
 import 'package:movies_db/model/movie_images_response.dart';
 import 'package:movies_db/model/movie_videos_response.dart';
-import 'package:movies_db/utils/AppTheme.dart';
 import 'package:movies_db/utils/AppUtils.dart';
 import 'package:movies_db/utils/AppWidgets.dart';
 import 'package:intl/intl.dart';
 import 'package:movies_db/utils/Constants.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 import 'package:readmore/readmore.dart';
-import 'package:shimmer/shimmer.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
 class MovieDetailPage extends StatefulWidget {
