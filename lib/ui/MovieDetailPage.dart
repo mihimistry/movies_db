@@ -1,8 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:movies_db/http/MovieRepository.dart';
 import 'package:movies_db/model/movie_credits_response.dart';
 import 'package:movies_db/model/movie_detail_response.dart';
 import 'package:movies_db/model/movie_images_response.dart';
