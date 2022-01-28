@@ -16,25 +16,25 @@ class MovieCubit extends Cubit<MovieState> {
 
   final MovieRepository _movieRepository;
 
-  Future<void> getNowPlayingMovies() async => await stateManager(
+  Future<void> getNowPlayingMovies() async => stateManager(
       await _movieRepository.getNowPlayingMovies(), NOW_PLAYING_RC);
 
-  Future<void> getMostPopularMovies() async => await stateManager(
+  Future<void> getMostPopularMovies() async => stateManager(
       await _movieRepository.getMostPopularMovies(), MOST_POPULAR_MOVIES_RC);
 
-  Future<void> getUpcomingMovies() async => await stateManager(
+  Future<void> getUpcomingMovies() async => stateManager(
       await _movieRepository.getUpcomingMovies(), UPCOMING_MOVIES_RC);
 
-  Future<void> getMovieDetails(movieId) async => await stateManager(
+  Future<void> getMovieDetails(movieId) async => stateManager(
       await _movieRepository.getMovieDetails(movieId), MOVIE_DETAILS_RC);
 
-  Future<void> getMovieCredits(movieId) async => await stateManager(
+  Future<void> getMovieCredits(movieId) async => stateManager(
       await _movieRepository.getMovieCredits(movieId), MOVIE_CREDITS_RC);
 
-  Future<void> getMovieVideos(movieId) async => await stateManager(
+  Future<void> getMovieVideos(movieId) async => stateManager(
       await _movieRepository.getMovieVideos(movieId), MOVIE_VIDEOS_RC);
 
-  Future<void> getMovieImages(movieId) async => await stateManager(
+  Future<void> getMovieImages(movieId) async => stateManager(
       await _movieRepository.getMovieImages(movieId), MOVIE_IMAGES_RC);
 
   Future<void> stateManager(dynamic movieResponse, int? requestCode,
