@@ -13,32 +13,30 @@ import 'package:movies_db/utils/Constants.dart';
 import '../model/MovieListResponse.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 
+import 'MovieDetailPage.dart';
+
 class HomePage extends StatefulWidget {
+  const HomePage({Key? key}) : super(key: key);
+
   @override
-  State<StatefulWidget> createState() {
-    return HomePageState();
-  }
+  _HomePageState createState() => _HomePageState();
 }
 
-class HomePageState extends State<HomePage> {
-  int _current = 0;
+class _HomePageState extends State<HomePage> {
   final CarouselController _controller = CarouselController();
 
+  late MovieCubit _movieCubit;
   MovieListResponse? _nowPlayingMovies;
   MovieListResponse? _mostPopularMovies;
   MovieListResponse? _upcomingMovies;
 
   @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final _movieCubit = BlocProvider.of<MovieCubit>(context);
-    _movieCubit.getNowPlayingMovies();
-    _movieCubit.getMostPopularMovies();
-    _movieCubit.getUpcomingMovies();
+    _movieCubit = BlocProvider.of<MovieCubit>(context);
+    _movieCubit
+        .getNowPlayingMovies()
+        .then((value) => _movieCubit.getMostPopularMovies())
+        .then((value) => _movieCubit.getUpcomingMovies());
 
     return Scaffold(
       appBar: AppWidgets.appBar(context, "MoviesDb"),
@@ -61,7 +59,7 @@ class HomePageState extends State<HomePage> {
         BlocBuilder<MovieCubit, MovieState>(builder: (context, state) {
           if (state is ReceivedState &&
               state.props[REQUEST_CODE] == MOST_POPULAR_MOVIES_RC) {
-            _mostPopularMovies=state.props[RESPONSE];
+            _mostPopularMovies = state.props[RESPONSE];
             return _movieListViewHorizontal("Popular", _mostPopularMovies);
           } else
             return _movieListViewHorizontal("Popular", _mostPopularMovies);
@@ -69,7 +67,7 @@ class HomePageState extends State<HomePage> {
         BlocBuilder<MovieCubit, MovieState>(builder: (context, state) {
           if (state is ReceivedState &&
               state.props[REQUEST_CODE] == UPCOMING_MOVIES_RC) {
-            _upcomingMovies=state.props[RESPONSE];
+            _upcomingMovies = state.props[RESPONSE];
             return _movieListViewHorizontal("Upcoming", _upcomingMovies);
           } else
             return _movieListViewHorizontal("Upcoming", _upcomingMovies);
@@ -217,26 +215,6 @@ class HomePageState extends State<HomePage> {
         .toList();
   }
 
-  _pagerIndicator(List<Results>? results) => Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: results!.asMap().entries.map((entry) {
-          return GestureDetector(
-            onTap: () => _controller.animateToPage(entry.key),
-            child: Container(
-              width: 8.0,
-              height: 8.0,
-              margin: EdgeInsets.symmetric(vertical: 15.0, horizontal: 4.0),
-              decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: (Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white
-                          : Colors.white)
-                      .withOpacity(_current == entry.key ? 0.9 : 0.4)),
-            ),
-          );
-        }).toList(),
-      );
-
   _movieListViewHorizontal(String heading, MovieListResponse? response) {
     if (response != null)
       return Column(
@@ -296,6 +274,10 @@ class HomePageState extends State<HomePage> {
   }
 
   void _openMovieDetailScreen(int? id) {
-    Navigator.of(context).pushNamed("/movieDetail", arguments: id);
+    Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => BlocProvider.value(
+              value: BlocProvider.of<MovieCubit>(context),
+              child: MovieDetailPage(id: id as int),
+            )));
   }
 }

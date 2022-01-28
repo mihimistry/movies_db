@@ -15,14 +15,11 @@ class MovieRepository {
   Future<MovieListResponse> getNowPlayingMovies() async =>
       getMovieList(Constants.GET_NOW_PLAYING);
 
-  Future<MovieListResponse> getMostPopularMovies() async {
-    return getMovieList(Constants.GET_MOST_POPULAR);
-  }
+  Future<MovieListResponse> getMostPopularMovies() async =>
+      getMovieList(Constants.GET_MOST_POPULAR);
 
-  Future<MovieListResponse> getUpcomingMovies() async {
-    await Future<void>.delayed(const Duration(seconds: 5));
-    return getMovieList(Constants.GET_UPCOMING_MOVIES);
-  }
+  Future<MovieListResponse> getUpcomingMovies() async =>
+      getMovieList(Constants.GET_UPCOMING_MOVIES);
 
   Future<MovieDetailResponse> getMovieDetails(movieId) async {
     final response =

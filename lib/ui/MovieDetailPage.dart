@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:movies_db/http/MovieRepository.dart';
 import 'package:movies_db/model/movie_credits_response.dart';
 import 'package:movies_db/model/movie_detail_response.dart';
@@ -13,6 +14,8 @@ import 'package:movies_db/utils/Constants.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 import 'package:readmore/readmore.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+
+import '../cubit/movie_cubit.dart';
 
 class MovieDetailPage extends StatefulWidget {
   final int id;
@@ -29,47 +32,51 @@ class _MovieDetailPageState extends State<MovieDetailPage>
 
   _MovieDetailPageState(this.movieId);
 
-  late Future<MovieDetailResponse> _movieDetail;
-  late Future<MovieCreditsResponse> _movieCredits;
-  late Future<MovieVideosResponse> _movieVideos;
-  late Future<MovieImagesResponse> _movieImages;
-  late MovieRepository _movieRepository;
+  late MovieCubit _movieCubit;
+  MovieDetailResponse _movieDetail = MovieDetailResponse();
+  MovieCreditsResponse _movieCredits = MovieCreditsResponse();
+  MovieVideosResponse _movieVideos = MovieVideosResponse();
+  MovieImagesResponse _movieImages = MovieImagesResponse();
 
   late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
-    _movieRepository = MovieRepository();
-    _movieDetail = _movieRepository.getMovieDetails(movieId);
-    _movieCredits = _movieRepository.getMovieCredits(movieId);
-    _movieVideos = _movieRepository.getMovieVideos(movieId);
-    _movieImages = _movieRepository.getMovieImages(movieId);
     _tabController = TabController(length: 2, vsync: this);
   }
 
   @override
   Widget build(BuildContext context) {
+    _movieCubit = BlocProvider.of<MovieCubit>(context);
+    _movieCubit.getMovieDetails(movieId)
+        .then((value) => _movieCubit.getMovieVideos(movieId))
+        .then((value) => _movieCubit.getMovieCredits(movieId))
+        .then((value) => _movieCubit.getMovieImages(movieId));
+
     return Scaffold(
-      appBar: AppWidgets.appBar(context, "Movie Detail"),
-      body: Container(
-          child: FutureBuilder<MovieDetailResponse>(
-        future: _movieDetail,
-        builder: (context, snapshot) {
-          if (snapshot.hasData) {
-            return _movieDetailLayout(context, snapshot.data!);
-          }
-          return AppWidgets.progressIndicator();
-        },
-      )),
-    );
+        appBar: AppWidgets.appBar(context, "Movie Detail"),
+        body: BlocBuilder<MovieCubit, MovieState>(builder: (context, state) {
+          if (state is LoadingState &&
+              state.props[REQUEST_CODE] == MOVIE_DETAILS_RC) {
+            return AppWidgets.progressIndicator();
+          } else if (state is ReceivedState &&
+              state.props[REQUEST_CODE] == MOVIE_DETAILS_RC) {
+            _movieDetail = state.props[RESPONSE];
+            return _movieDetailLayout(context, _movieDetail);
+          } else if (state is ErrorState &&
+              state.props[REQUEST_CODE] == MOVIE_DETAILS_RC) {
+            return AppWidgets.progressIndicator();
+          } else
+            return _movieDetailLayout(context, _movieDetail);
+        }));
   }
 
   Widget _movieDetailLayout(
     BuildContext context,
     MovieDetailResponse movie,
   ) {
-    var _movieTitle = movie.title;
+    var _movieTitle = movie.title??"";
     var _releaseYear = "";
     if (movie.releaseDate != null)
       _releaseYear = DateFormat.y().format(DateTime.parse(movie.releaseDate!));
@@ -107,7 +114,7 @@ class _MovieDetailPageState extends State<MovieDetailPage>
           ]),
         ),
         Container(
-          margin: EdgeInsets.only(left: 20,top: 20,right: 20,bottom: 30),
+          margin: EdgeInsets.only(left: 20, top: 20, right: 20, bottom: 30),
           decoration: BoxDecoration(
             color: Colors.grey[300],
             borderRadius: BorderRadius.circular(
@@ -139,43 +146,61 @@ class _MovieDetailPageState extends State<MovieDetailPage>
           child: TabBarView(
             controller: _tabController,
             children: [
-              FutureBuilder<MovieVideosResponse>(
-                future: _movieVideos,
-                builder: (context, snapshot) {
-                  if (snapshot.hasData) {
-                    return _movieVideoListHorizontal(
-                        "Media", snapshot.data?.results ?? []);
-                  }
+              BlocBuilder<MovieCubit, MovieState>(builder: (context, state) {
+                if (state is LoadingState &&
+                    state.props[REQUEST_CODE] == MOVIE_VIDEOS_RC) {
                   return AppWidgets.progressIndicator();
-                },
-              ),
-              FutureBuilder<MovieImagesResponse>(
-                future: _movieImages,
-                builder: (context, snapshot) {
-                  if (snapshot.hasData) {
-                    return _movieImagesListHorizontal(
-                        "Media",
-                        snapshot.data?.backdrops ?? [],
-                        snapshot.data?.posters ?? []);
-                  }
+                } else if (state is ReceivedState &&
+                    state.props[REQUEST_CODE] == MOVIE_VIDEOS_RC) {
+                  _movieVideos = state.props[RESPONSE];
+                  return _movieVideoListHorizontal(
+                      "Media", _movieVideos.results ?? []);
+                } else if (state is ErrorState &&
+                    state.props[REQUEST_CODE] == MOVIE_VIDEOS_RC) {
                   return AppWidgets.progressIndicator();
-                },
-              )
+                } else
+                  return _movieVideoListHorizontal(
+                      "Media", _movieVideos.results ?? []);
+              }),
+              BlocBuilder<MovieCubit, MovieState>(builder: (context, state) {
+                if (state is LoadingState &&
+                    state.props[REQUEST_CODE] == MOVIE_IMAGES_RC) {
+                  return AppWidgets.progressIndicator();
+                } else if (state is ReceivedState &&
+                    state.props[REQUEST_CODE] == MOVIE_IMAGES_RC) {
+                  _movieImages = state.props[RESPONSE];
+                  return _movieImagesListHorizontal("Media",
+                      _movieImages.backdrops ?? [], _movieImages.posters ?? []);
+                } else if (state is ErrorState &&
+                    state.props[REQUEST_CODE] == MOVIE_IMAGES_RC) {
+                  return AppWidgets.progressIndicator();
+                } else
+                  return _movieImagesListHorizontal("Media",
+                      _movieImages.backdrops ?? [], _movieImages.posters ?? []);
+              }),
             ],
           ),
         ),
-        FutureBuilder<MovieCreditsResponse>(
-          future: _movieCredits,
-          builder: (context, snapshot) {
-            if (snapshot.hasData) {
-              return _movieCastListHorizontal(
-                "Cast",
-                snapshot.data?.cast ?? [],
-              );
-            }
+        BlocBuilder<MovieCubit, MovieState>(builder: (context, state) {
+          if (state is LoadingState &&
+              state.props[REQUEST_CODE] == MOVIE_CREDITS_RC) {
             return AppWidgets.progressIndicator();
-          },
-        )
+          } else if (state is ReceivedState &&
+              state.props[REQUEST_CODE] == MOVIE_CREDITS_RC) {
+            _movieCredits = state.props[RESPONSE];
+            return _movieCastListHorizontal(
+              "Cast",
+              _movieCredits.cast ?? [],
+            );
+          } else if (state is ErrorState &&
+              state.props[REQUEST_CODE] == MOVIE_CREDITS_RC) {
+            return AppWidgets.progressIndicator();
+          } else
+            return _movieCastListHorizontal(
+              "Cast",
+              _movieCredits.cast ?? [],
+            );
+        })
       ],
     );
   }
@@ -216,12 +241,12 @@ class _MovieDetailPageState extends State<MovieDetailPage>
                           animation: true,
                           circularStrokeCap: CircularStrokeCap.round,
                           backgroundColor: Colors.transparent,
-                          percent: movie.voteAverage! / 10,
+                          percent: (movie.voteAverage ?? 0) / 10,
                           center: Stack(
                             alignment: Alignment.topLeft,
                             children: [
                               Text(
-                                "${(movie.voteAverage! * 10).toInt()}%",
+                                "${((movie.voteAverage ?? 0) * 10).toInt()}%",
                                 style: TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.bold,
@@ -230,7 +255,7 @@ class _MovieDetailPageState extends State<MovieDetailPage>
                             ],
                           ),
                           progressColor: AppUtils.setVotingProgressColor(
-                              movie.voteAverage!),
+                              movie.voteAverage ?? 0),
                         ),
                       ],
                     ),

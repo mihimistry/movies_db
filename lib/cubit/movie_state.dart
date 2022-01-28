@@ -1,5 +1,8 @@
 part of 'movie_cubit.dart';
 
+const SUCCESS = "Success";
+const LOADING = "Loading";
+const ERROR = "Error";
 const RESPONSE = "Response";
 const REQUEST_CODE = "RequestCode";
 
@@ -13,8 +16,12 @@ class InitialState extends MovieState {
 }
 
 class LoadingState extends MovieState {
+  final int? _requestCode;
+
+  LoadingState(this._requestCode);
+
   @override
-  List<Object> get props => [];
+  Map<String, dynamic> get props => {REQUEST_CODE: _requestCode};
 }
 
 class ReceivedState extends MovieState {
@@ -28,33 +35,13 @@ class ReceivedState extends MovieState {
       {RESPONSE: _response, REQUEST_CODE: _requestCode};
 }
 
-class Received1State extends MovieState {
-  final dynamic _response;
-  final int? _requestCode;
-
-  Received1State(this._response, this._requestCode);
-
-  @override
-  Map<String, dynamic> get props =>
-      {RESPONSE: _response, REQUEST_CODE: _requestCode};
-}
-
-class Received2State extends MovieState {
-  final dynamic _response;
-  final int? _requestCode;
-
-  Received2State(this._response, this._requestCode);
-
-  @override
-  Map<String, dynamic> get props =>
-      {RESPONSE: _response, REQUEST_CODE: _requestCode};
-}
-
 class ErrorState extends MovieState {
   final String _errorMessage;
+  final int? _requestCode;
 
-  ErrorState(this._errorMessage);
+  ErrorState(this._errorMessage, this._requestCode);
 
   @override
-  List<Object> get props => [_errorMessage];
+  Map<String, dynamic> get props =>
+      {ERROR: _errorMessage, REQUEST_CODE: _requestCode};
 }
