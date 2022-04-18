@@ -5,11 +5,14 @@ import 'package:movies_db/cubit/movie_cubit.dart';
 import 'package:movies_db/http/MovieRepository.dart';
 
 import 'helper/RouteGenerator.dart';
-import 'ui/HomePage.dart';
+import 'ui/home_page.dart';
 import 'utils/AppTheme.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(ProviderScope(
+    child: MyApp(),
+  ));
 }
 
 class MyApp extends StatelessWidget {

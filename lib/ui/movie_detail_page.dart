@@ -5,6 +5,7 @@ import 'package:movies_db/model/movie_credits_response.dart';
 import 'package:movies_db/model/movie_detail_response.dart';
 import 'package:movies_db/model/movie_images_response.dart';
 import 'package:movies_db/model/movie_videos_response.dart';
+import 'package:movies_db/ui/person_detail_page.dart';
 import 'package:movies_db/utils/AppUtils.dart';
 import 'package:movies_db/utils/AppWidgets.dart';
 import 'package:intl/intl.dart';
@@ -47,7 +48,8 @@ class _MovieDetailPageState extends State<MovieDetailPage>
   @override
   Widget build(BuildContext context) {
     _movieCubit = BlocProvider.of<MovieCubit>(context);
-    _movieCubit.getMovieDetails(movieId)
+    _movieCubit
+        .getMovieDetails(movieId)
         .then((value) => _movieCubit.getMovieVideos(movieId))
         .then((value) => _movieCubit.getMovieCredits(movieId))
         .then((value) => _movieCubit.getMovieImages(movieId));
@@ -74,7 +76,7 @@ class _MovieDetailPageState extends State<MovieDetailPage>
     BuildContext context,
     MovieDetailResponse movie,
   ) {
-    var _movieTitle = movie.title??"";
+    var _movieTitle = movie.title ?? "";
     var _releaseYear = "";
     if (movie.releaseDate != null)
       _releaseYear = DateFormat.y().format(DateTime.parse(movie.releaseDate!));
@@ -370,46 +372,54 @@ class _MovieDetailPageState extends State<MovieDetailPage>
                       width: 100.0,
                       height: 125.0,
                       child: InkWell(
+                          onTap: () {
+                            Navigator.of(context).push(MaterialPageRoute(
+                                builder: (_) => BlocProvider.value(
+                                  value: BlocProvider.of<MovieCubit>(context),
+                                  child: PersonDetailPage(id: movieCastList[index].id as int),
+                                )));
+                          },
                           child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: CachedNetworkImage(
-                                imageUrl:
-                                    "${Constants.imageUrlPrefix}/${movieCastList[index].profilePath}",
-                                placeholder: (context, url) =>
-                                    AppWidgets.progressIndicator(),
-                                errorWidget: (context, url, error) => Container(
-                                      width: 100.0,
-                                      height: 150.0,
-                                      child: Icon(Icons.error),
-                                    )),
-                          ),
-                          //PopularPoster
-                          SizedBox(height: 10),
-                          Text(
-                            "${movieCastList[index].name}",
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                                color: AppWidgets.textColor(context)),
-                          ),
-                          //Original Name
-                          SizedBox(height: 5),
-                          Text(
-                            "${movieCastList[index].character}",
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                fontSize: 12,
-                                color: AppWidgets.textColor(context)),
-                          )
-                          //Character Name
-                        ],
-                      )));
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: CachedNetworkImage(
+                                    imageUrl:
+                                        "${Constants.imageUrlPrefix}/${movieCastList[index].profilePath}",
+                                    placeholder: (context, url) =>
+                                        AppWidgets.progressIndicator(),
+                                    errorWidget: (context, url, error) =>
+                                        Container(
+                                          width: 100.0,
+                                          height: 150.0,
+                                          child: Icon(Icons.error),
+                                        )),
+                              ),
+                              //PopularPoster
+                              SizedBox(height: 10),
+                              Text(
+                                "${movieCastList[index].name}",
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppWidgets.textColor(context)),
+                              ),
+                              //Original Name
+                              SizedBox(height: 5),
+                              Text(
+                                "${movieCastList[index].character}",
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppWidgets.textColor(context)),
+                              )
+                              //Character Name
+                            ],
+                          )));
                 }))
         // Horizontal List
       ],

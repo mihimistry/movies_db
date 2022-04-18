@@ -1,7 +1,3 @@
-import 'dart:convert';
-import 'dart:ffi';
-import 'dart:ui';
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
@@ -13,7 +9,7 @@ import 'package:movies_db/utils/Constants.dart';
 import '../model/MovieListResponse.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 
-import 'MovieDetailPage.dart';
+import 'movie_detail_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
