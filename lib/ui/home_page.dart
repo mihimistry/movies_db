@@ -1,38 +1,48 @@
+import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movies_db/cubit/movie_cubit.dart';
 import 'package:movies_db/utils/AppUtils.dart';
 import 'package:movies_db/utils/AppWidgets.dart';
 import 'package:movies_db/utils/Constants.dart';
+import '../http/MovieRepository.dart';
 import '../model/MovieListResponse.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 
 import 'movie_detail_page.dart';
 
-class HomePage extends StatefulWidget {
+class HomePage extends ConsumerStatefulWidget {
   const HomePage({Key? key}) : super(key: key);
 
   @override
   _HomePageState createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends ConsumerState<HomePage> {
   final CarouselController _controller = CarouselController();
 
-  late MovieCubit _movieCubit;
   MovieListResponse? _nowPlayingMovies;
   MovieListResponse? _mostPopularMovies;
   MovieListResponse? _upcomingMovies;
+  late MovieRepository _movieRepository;
+  late FutureProvider nowPlayingMoviesProvider;
+  late FutureProvider mostPopularMoviesProvider;
+  late FutureProvider upcomingMoviesProvider;
+
+  @override
+  void initState() {
+    super.initState();
+    _movieRepository = MovieRepository();
+    nowPlayingMoviesProvider = _movieRepository.getNowPlayingMovies();
+    mostPopularMoviesProvider=_movieRepository.getMostPopularMovies();
+    upcomingMoviesProvider=_movieRepository.getUpcomingMovies();
+  }
 
   @override
   Widget build(BuildContext context) {
-    _movieCubit = BlocProvider.of<MovieCubit>(context);
-    _movieCubit
-        .getNowPlayingMovies()
-        .then((value) => _movieCubit.getMostPopularMovies())
-        .then((value) => _movieCubit.getUpcomingMovies());
 
     return Scaffold(
       appBar: AppWidgets.appBar(context, "MoviesDb"),
@@ -44,30 +54,33 @@ class _HomePageState extends State<HomePage> {
     return ListView(
       children: [
         SizedBox(height: 20),
-        BlocBuilder<MovieCubit, MovieState>(builder: (context, state) {
-          if (state is ReceivedState &&
-              state.props[REQUEST_CODE] == NOW_PLAYING_RC) {
-            _nowPlayingMovies = state.props[RESPONSE];
-            return _nowPlayingSlider(_nowPlayingMovies);
-          } else
-            return _nowPlayingSlider(_nowPlayingMovies);
-        }), //Now Playing Slider
-        BlocBuilder<MovieCubit, MovieState>(builder: (context, state) {
-          if (state is ReceivedState &&
-              state.props[REQUEST_CODE] == MOST_POPULAR_MOVIES_RC) {
-            _mostPopularMovies = state.props[RESPONSE];
-            return _movieListViewHorizontal("Popular", _mostPopularMovies);
-          } else
-            return _movieListViewHorizontal("Popular", _mostPopularMovies);
-        }), // Popular Movie List
-        BlocBuilder<MovieCubit, MovieState>(builder: (context, state) {
-          if (state is ReceivedState &&
-              state.props[REQUEST_CODE] == UPCOMING_MOVIES_RC) {
-            _upcomingMovies = state.props[RESPONSE];
-            return _movieListViewHorizontal("Upcoming", _upcomingMovies);
-          } else
-            return _movieListViewHorizontal("Upcoming", _upcomingMovies);
-        }) // Upcoming Movie List
+        ref.watch(nowPlayingMoviesProvider).map(
+              data: (data) {
+                _nowPlayingMovies = MovieListResponse.fromJson(
+                    jsonDecode(jsonEncode(data.value)));
+                return _nowPlayingSlider(_nowPlayingMovies);
+              },
+              error: (e) => Text(e.error.toString()),
+              loading: (_) => Center(child: AppWidgets.progressIndicator()),
+            ),
+        ref.watch(mostPopularMoviesProvider).map(
+              data: (data) {
+                _mostPopularMovies = MovieListResponse.fromJson(
+                    jsonDecode(jsonEncode(data.value)));
+                return _movieListViewHorizontal("Popular", _mostPopularMovies);
+              },
+              error: (e) => Text(e.error.toString()),
+              loading: (_) => Center(child: AppWidgets.progressIndicator()),
+            ),
+        ref.watch(upcomingMoviesProvider).map(
+              data: (data) {
+                _upcomingMovies = MovieListResponse.fromJson(
+                    jsonDecode(jsonEncode(data.value)));
+                return _movieListViewHorizontal("Upcoming", _upcomingMovies);
+              },
+              error: (e) => Text(e.error.toString()),
+              loading: (_) => Center(child: AppWidgets.progressIndicator()),
+            ),
       ],
     );
   }
@@ -201,7 +214,7 @@ class _HomePageState extends State<HomePage> {
                                     ),
                                     //MovieTitle
                                   ],
-                                )),
+                                 )),
                           ],
                         ),
                       )),

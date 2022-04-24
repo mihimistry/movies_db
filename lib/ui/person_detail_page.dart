@@ -31,6 +31,7 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
 
   @override
   void initState() {
+    super.initState();
     personDetailProvider = MovieRepository().getPersonDetail(personId);
   }
 

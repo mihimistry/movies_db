@@ -14,14 +14,14 @@ import '../model/MovieListResponse.dart';
 class MovieRepository {
   ApiManager _helper = ApiManager();
 
-  Future<MovieListResponse> getNowPlayingMovies() async =>
-      getMovieList(Constants.GET_NOW_PLAYING);
+  FutureProvider getNowPlayingMovies() =>
+      getMovieListRP(Constants.GET_NOW_PLAYING);
 
-  Future<MovieListResponse> getMostPopularMovies() async =>
-      getMovieList(Constants.GET_MOST_POPULAR);
+  FutureProvider getMostPopularMovies() =>
+      getMovieListRP(Constants.GET_MOST_POPULAR);
 
-  Future<MovieListResponse> getUpcomingMovies() async =>
-      getMovieList(Constants.GET_UPCOMING_MOVIES);
+  FutureProvider getUpcomingMovies() =>
+      getMovieListRP(Constants.GET_UPCOMING_MOVIES);
 
   Future<MovieDetailResponse> getMovieDetails(movieId) async {
     final response =
@@ -52,8 +52,11 @@ class MovieRepository {
     return MovieListResponse.fromJson(response);
   }
 
+  FutureProvider getMovieListRP(requestedUrl) {
+    return _helper.getDioResponse(requestedUrl);
+  }
+
   FutureProvider getPersonDetail(personId) {
-    final result = _helper.getDioResponse("${Constants.GET_PERSON_DETAILS}/$personId");
-    return result;
+    return _helper.getDioResponse("${Constants.GET_PERSON_DETAILS}/$personId");
   }
 }

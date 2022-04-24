@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movies_db/model/movie_credits_response.dart';
 import 'package:movies_db/model/movie_detail_response.dart';
 import 'package:movies_db/model/movie_images_response.dart';
@@ -16,7 +17,7 @@ import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
 import '../cubit/movie_cubit.dart';
 
-class MovieDetailPage extends StatefulWidget {
+class MovieDetailPage extends ConsumerStatefulWidget {
   final int id;
 
   const MovieDetailPage({Key? key, required this.id}) : super(key: key);
@@ -25,7 +26,7 @@ class MovieDetailPage extends StatefulWidget {
   _MovieDetailPageState createState() => _MovieDetailPageState(id);
 }
 
-class _MovieDetailPageState extends State<MovieDetailPage>
+class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     with SingleTickerProviderStateMixin {
   var movieId;
 
@@ -375,9 +376,11 @@ class _MovieDetailPageState extends State<MovieDetailPage>
                           onTap: () {
                             Navigator.of(context).push(MaterialPageRoute(
                                 builder: (_) => BlocProvider.value(
-                                  value: BlocProvider.of<MovieCubit>(context),
-                                  child: PersonDetailPage(id: movieCastList[index].id as int),
-                                )));
+                                      value:
+                                          BlocProvider.of<MovieCubit>(context),
+                                      child: PersonDetailPage(
+                                          id: movieCastList[index].id as int),
+                                    )));
                           },
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
