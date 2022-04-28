@@ -9,10 +9,11 @@ import 'ApiExceptions.dart';
 
 class ApiManager {
   final dioClientProvider = Provider<Dio>(
-        (ref) =>
-        Dio(
-          BaseOptions(baseUrl: Constants.urlPrefix,),
-        ),
+    (ref) => Dio(
+      BaseOptions(
+        baseUrl: Constants.urlPrefix,
+      ),
+    ),
   );
 
   FutureProvider getDioResponse(String apiUrl) {
@@ -20,8 +21,8 @@ class ApiManager {
 
     return FutureProvider((ref) async {
       final response = await ref.read(dioClientProvider).get(
-        endpoint,
-      );
+            endpoint,
+          );
 
       return response.data;
     });

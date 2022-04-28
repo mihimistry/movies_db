@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:movies_db/http/MovieRepository.dart';
+import 'package:movies_db/data/MovieRepository.dart';
 import 'package:movies_db/model/person_details_response.dart';
 
 import '../utils/Constants.dart';

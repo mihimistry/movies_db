@@ -8,7 +8,7 @@ import 'package:movies_db/cubit/movie_cubit.dart';
 import 'package:movies_db/utils/AppUtils.dart';
 import 'package:movies_db/utils/AppWidgets.dart';
 import 'package:movies_db/utils/Constants.dart';
-import '../http/MovieRepository.dart';
+import '../data/MovieRepository.dart';
 import '../model/MovieListResponse.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 
@@ -60,7 +60,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                     jsonDecode(jsonEncode(data.value)));
                 return _nowPlayingSlider(_nowPlayingMovies);
               },
-              error: (e) => Text(e.error.toString()),
+              error: (e) => Center(child: Text(e.error.toString())),
               loading: (_) => Center(child: AppWidgets.progressIndicator()),
             ),
         ref.watch(mostPopularMoviesProvider).map(

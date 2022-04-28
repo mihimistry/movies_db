@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -16,6 +18,7 @@ import 'package:readmore/readmore.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
 import '../cubit/movie_cubit.dart';
+import '../data/MovieRepository.dart';
 
 class MovieDetailPage extends ConsumerStatefulWidget {
   final int id;
@@ -32,7 +35,12 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
 
   _MovieDetailPageState(this.movieId);
 
-  late MovieCubit _movieCubit;
+  late MovieRepository _movieRepository;
+  late FutureProvider movieDetailProvider;
+  late FutureProvider movieCreditsProvider;
+  late FutureProvider movieVideosProvider;
+  late FutureProvider movieImagesProvider;
+
   MovieDetailResponse _movieDetail = MovieDetailResponse();
   MovieCreditsResponse _movieCredits = MovieCreditsResponse();
   MovieVideosResponse _movieVideos = MovieVideosResponse();
@@ -44,33 +52,25 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _movieRepository = MovieRepository();
+    movieDetailProvider = _movieRepository.getMovieDetails(movieId);
+    movieCreditsProvider = _movieRepository.getMovieCredits(movieId);
+    movieVideosProvider = _movieRepository.getMovieVideos(movieId);
+    movieImagesProvider = _movieRepository.getMovieImages(movieId);
   }
 
   @override
   Widget build(BuildContext context) {
-    _movieCubit = BlocProvider.of<MovieCubit>(context);
-    _movieCubit
-        .getMovieDetails(movieId)
-        .then((value) => _movieCubit.getMovieVideos(movieId))
-        .then((value) => _movieCubit.getMovieCredits(movieId))
-        .then((value) => _movieCubit.getMovieImages(movieId));
-
     return Scaffold(
         appBar: AppWidgets.appBar(context, "Movie Detail"),
-        body: BlocBuilder<MovieCubit, MovieState>(builder: (context, state) {
-          if (state is LoadingState &&
-              state.props[REQUEST_CODE] == MOVIE_DETAILS_RC) {
-            return AppWidgets.progressIndicator();
-          } else if (state is ReceivedState &&
-              state.props[REQUEST_CODE] == MOVIE_DETAILS_RC) {
-            _movieDetail = state.props[RESPONSE];
-            return _movieDetailLayout(context, _movieDetail);
-          } else if (state is ErrorState &&
-              state.props[REQUEST_CODE] == MOVIE_DETAILS_RC) {
-            return AppWidgets.progressIndicator();
-          } else
-            return _movieDetailLayout(context, _movieDetail);
-        }));
+        body: ref.watch(movieDetailProvider).map(
+            data: (data) {
+              _movieDetail = MovieDetailResponse.fromJson(
+                  jsonDecode(jsonEncode(data.value)));
+              return _movieDetailLayout(context, _movieDetail);
+            },
+            error: (e) => Center(child: Text(e.error.toString())),
+            loading: (_) => AppWidgets.progressIndicator()));
   }
 
   Widget _movieDetailLayout(
@@ -147,61 +147,40 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
           child: TabBarView(
             controller: _tabController,
             children: [
-              BlocBuilder<MovieCubit, MovieState>(builder: (context, state) {
-                if (state is LoadingState &&
-                    state.props[REQUEST_CODE] == MOVIE_VIDEOS_RC) {
-                  return AppWidgets.progressIndicator();
-                } else if (state is ReceivedState &&
-                    state.props[REQUEST_CODE] == MOVIE_VIDEOS_RC) {
-                  _movieVideos = state.props[RESPONSE];
-                  return _movieVideoListHorizontal(
-                      "Media", _movieVideos.results ?? []);
-                } else if (state is ErrorState &&
-                    state.props[REQUEST_CODE] == MOVIE_VIDEOS_RC) {
-                  return AppWidgets.progressIndicator();
-                } else
-                  return _movieVideoListHorizontal(
-                      "Media", _movieVideos.results ?? []);
-              }),
-              BlocBuilder<MovieCubit, MovieState>(builder: (context, state) {
-                if (state is LoadingState &&
-                    state.props[REQUEST_CODE] == MOVIE_IMAGES_RC) {
-                  return AppWidgets.progressIndicator();
-                } else if (state is ReceivedState &&
-                    state.props[REQUEST_CODE] == MOVIE_IMAGES_RC) {
-                  _movieImages = state.props[RESPONSE];
-                  return _movieImagesListHorizontal("Media",
-                      _movieImages.backdrops ?? [], _movieImages.posters ?? []);
-                } else if (state is ErrorState &&
-                    state.props[REQUEST_CODE] == MOVIE_IMAGES_RC) {
-                  return AppWidgets.progressIndicator();
-                } else
-                  return _movieImagesListHorizontal("Media",
-                      _movieImages.backdrops ?? [], _movieImages.posters ?? []);
-              }),
+              ref.watch(movieVideosProvider).map(
+                  data: (data) {
+                    _movieVideos = MovieVideosResponse.fromJson(
+                        jsonDecode(jsonEncode(data.value)));
+                    return _movieVideoListHorizontal(
+                        "Media", _movieVideos.results ?? []);
+                  },
+                  error: (e) => Center(child: Text(e.error.toString())),
+                  loading: (_) => AppWidgets.progressIndicator()),
+              ref.watch(movieImagesProvider).map(
+                  data: (data) {
+                    _movieImages = MovieImagesResponse.fromJson(
+                        jsonDecode(jsonEncode(data.value)));
+                    return _movieImagesListHorizontal(
+                        "Media",
+                        _movieImages.backdrops ?? [],
+                        _movieImages.posters ?? []);
+                  },
+                  error: (e) => Center(child: Text(e.error.toString())),
+                  loading: (_) => AppWidgets.progressIndicator())
             ],
           ),
         ),
-        BlocBuilder<MovieCubit, MovieState>(builder: (context, state) {
-          if (state is LoadingState &&
-              state.props[REQUEST_CODE] == MOVIE_CREDITS_RC) {
-            return AppWidgets.progressIndicator();
-          } else if (state is ReceivedState &&
-              state.props[REQUEST_CODE] == MOVIE_CREDITS_RC) {
-            _movieCredits = state.props[RESPONSE];
-            return _movieCastListHorizontal(
-              "Cast",
-              _movieCredits.cast ?? [],
-            );
-          } else if (state is ErrorState &&
-              state.props[REQUEST_CODE] == MOVIE_CREDITS_RC) {
-            return AppWidgets.progressIndicator();
-          } else
-            return _movieCastListHorizontal(
-              "Cast",
-              _movieCredits.cast ?? [],
-            );
-        })
+        ref.watch(movieCreditsProvider).map(
+            data: (data) {
+              _movieCredits = MovieCreditsResponse.fromJson(
+                  jsonDecode(jsonEncode(data.value)));
+              return _movieCastListHorizontal(
+                "Cast",
+                _movieCredits.cast ?? [],
+              );
+            },
+            error: (e) => Center(child: Text(e.error.toString())),
+            loading: (_) => AppWidgets.progressIndicator())
       ],
     );
   }

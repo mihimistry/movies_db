@@ -1,5 +1,5 @@
 import 'package:bloc/bloc.dart';
-import 'package:movies_db/http/MovieRepository.dart';
+import 'package:movies_db/data/MovieRepository.dart';
 
 part 'movie_state.dart';
 
