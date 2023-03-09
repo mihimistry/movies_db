@@ -3,9 +3,10 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:movies_db/data/MovieRepository.dart';
-import 'package:movies_db/model/person_details_response.dart';
-
+import 'package:get/get.dart';
+import '../components/api_status_widgets_handler.dart';
+import '../controllers/person_details_controller.dart';
+import '../utils/AppWidgets.dart';
 import '../utils/Constants.dart';
 
 final dioClientProvider = Provider<Dio>(
@@ -25,28 +26,25 @@ class PersonDetailPage extends ConsumerStatefulWidget {
 
 class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
   final int personId;
-  late FutureProvider personDetailProvider;
+
+  var personDetailsController = Get.put(PersonDetailsController());
 
   _PersonDetailPageState(this.personId);
 
   @override
   void initState() {
+    personDetailsController.personId(personId);
     super.initState();
-    personDetailProvider = MovieRepository().getPersonDetail(personId);
   }
 
   @override
   Widget build(BuildContext context) {
-    final response = ref.watch(personDetailProvider);
-
     return Scaffold(
-        body: response.map(
-      data: (data) {
-        final person=PersonDetailsResponse.fromJson(jsonDecode(jsonEncode(data.value)));
-        return Text(person.name.toString());
-      },
-      error: (data) => Text(data.error.toString()),
-      loading: (data) => Text("Loading"),
-    ));
+        body: Obx(() => ApiStatusWidgetsHandler(
+            apiCallStatus: personDetailsController.personDetailsStatus.value,
+            loadingWidget: () => AppWidgets.progressIndicator(),
+            errorWidget: () => Center(child: Text("Something went wrong!")),
+            successWidget: () => Text(
+                personDetailsController.personDetails.value.name.toString()))));
   }
 }

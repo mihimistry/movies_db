@@ -1,33 +1,31 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:movies_db/cubit/movie_cubit.dart';
-import 'package:movies_db/data/MovieRepository.dart';
-
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
 import 'helper/RouteGenerator.dart';
 import 'ui/home_page.dart';
 import 'utils/AppTheme.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 void main() {
-  runApp(ProviderScope(
-    child: MyApp(),
-  ));
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Movie DB',
-      theme: AppTheme.themeData(Brightness.light),
-      darkTheme: AppTheme.themeData(Brightness.dark),
-      home: BlocProvider(
-        create: (context) => MovieCubit(MovieRepository()),
-        child: HomePage(),
-      ),
-      onGenerateRoute: RouteGenerator.generateRoute,
-    );
+    return ScreenUtilInit(
+        designSize: const Size(360, 690),
+        minTextAdapt: true,
+        splitScreenMode: true,
+        builder: (context, child) {
+          return GetMaterialApp(
+            title: 'Movie DB',
+            theme: AppTheme.themeData(Brightness.light),
+            darkTheme: AppTheme.themeData(Brightness.dark),
+            home: child,
+            onGenerateRoute: RouteGenerator.generateRoute,
+          );
+        },
+        child: HomePage());
   }
 }

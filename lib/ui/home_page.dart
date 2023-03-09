@@ -2,12 +2,13 @@ import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:movies_db/cubit/movie_cubit.dart';
+import 'package:get/get.dart';
+import 'package:movies_db/controllers/home_controller.dart';
 import 'package:movies_db/utils/AppUtils.dart';
 import 'package:movies_db/utils/AppWidgets.dart';
 import 'package:movies_db/utils/Constants.dart';
+import '../components/api_status_widgets_handler.dart';
 import '../data/MovieRepository.dart';
 import '../model/MovieListResponse.dart';
 import 'package:percent_indicator/percent_indicator.dart';
@@ -23,27 +24,10 @@ class HomePage extends ConsumerStatefulWidget {
 
 class _HomePageState extends ConsumerState<HomePage> {
   final CarouselController _controller = CarouselController();
-
-  MovieListResponse? _nowPlayingMovies;
-  MovieListResponse? _mostPopularMovies;
-  MovieListResponse? _upcomingMovies;
-  late MovieRepository _movieRepository;
-  late FutureProvider nowPlayingMoviesProvider;
-  late FutureProvider mostPopularMoviesProvider;
-  late FutureProvider upcomingMoviesProvider;
-
-  @override
-  void initState() {
-    super.initState();
-    _movieRepository = MovieRepository();
-    nowPlayingMoviesProvider = _movieRepository.getNowPlayingMovies();
-    mostPopularMoviesProvider=_movieRepository.getMostPopularMovies();
-    upcomingMoviesProvider=_movieRepository.getUpcomingMovies();
-  }
+  var homeController = Get.put(HomeController());
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       appBar: AppWidgets.appBar(context, "MoviesDb"),
       body: Builder(builder: (context) => homePageLayout()),
@@ -54,7 +38,46 @@ class _HomePageState extends ConsumerState<HomePage> {
     return ListView(
       children: [
         SizedBox(height: 20),
-        ref.watch(nowPlayingMoviesProvider).map(
+        Obx(
+          () {
+            return ApiStatusWidgetsHandler(
+                apiCallStatus: homeController.nowPlayingStatus.value,
+                loadingWidget: () =>
+                    Center(child: AppWidgets.progressIndicator()),
+                errorWidget: () => const Center(
+                      child: Text('Something went wrong!'),
+                    ),
+                successWidget: () =>
+                    _nowPlayingSlider(homeController.nowPlayingMovies.value));
+          },
+        ),
+        Obx(
+          () {
+            return ApiStatusWidgetsHandler(
+                apiCallStatus: homeController.popularStatus.value,
+                loadingWidget: () =>
+                    Center(child: AppWidgets.progressIndicator()),
+                errorWidget: () => const Center(
+                      child: Text('Something went wrong!'),
+                    ),
+                successWidget: () => _movieListViewHorizontal(
+                    "Popular", homeController.popularMovies.value));
+          },
+        ),
+        Obx(
+          () {
+            return ApiStatusWidgetsHandler(
+                apiCallStatus: homeController.upcomingStatus.value,
+                loadingWidget: () =>
+                    Center(child: AppWidgets.progressIndicator()),
+                errorWidget: () => const Center(
+                      child: Text('Something went wrong!'),
+                    ),
+                successWidget: () => _movieListViewHorizontal(
+                    "Upcoming", homeController.upcomingMovies.value));
+          },
+        )
+        /*ref.watch(nowPlayingMoviesProvider).map(
               data: (data) {
                 _nowPlayingMovies = MovieListResponse.fromJson(
                     jsonDecode(jsonEncode(data.value)));
@@ -62,25 +85,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               },
               error: (e) => Center(child: Text(e.error.toString())),
               loading: (_) => Center(child: AppWidgets.progressIndicator()),
-            ),
-        ref.watch(mostPopularMoviesProvider).map(
-              data: (data) {
-                _mostPopularMovies = MovieListResponse.fromJson(
-                    jsonDecode(jsonEncode(data.value)));
-                return _movieListViewHorizontal("Popular", _mostPopularMovies);
-              },
-              error: (e) => Text(e.error.toString()),
-              loading: (_) => Center(child: AppWidgets.progressIndicator()),
-            ),
-        ref.watch(upcomingMoviesProvider).map(
-              data: (data) {
-                _upcomingMovies = MovieListResponse.fromJson(
-                    jsonDecode(jsonEncode(data.value)));
-                return _movieListViewHorizontal("Upcoming", _upcomingMovies);
-              },
-              error: (e) => Text(e.error.toString()),
-              loading: (_) => Center(child: AppWidgets.progressIndicator()),
-            ),
+            ),*/
       ],
     );
   }
@@ -182,8 +187,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                                     CircularPercentIndicator(
                                       radius: 35.0,
                                       lineWidth: 3.0,
-                                      circularStrokeCap:
-                                          CircularStrokeCap.round,
+                                      circularStrokeCap: CircularStrokeCap.round,
                                       backgroundColor: Colors.transparent,
                                       percent: movie.voteAverage! / 10,
                                       center: Stack(
@@ -214,7 +218,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                                     ),
                                     //MovieTitle
                                   ],
-                                 )),
+                                )),
                           ],
                         ),
                       )),
@@ -283,10 +287,6 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   void _openMovieDetailScreen(int? id) {
-    Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => BlocProvider.value(
-              value: BlocProvider.of<MovieCubit>(context),
-              child: MovieDetailPage(id: id as int),
-            )));
+    Get.to(MovieDetailPage(),arguments: id);
   }
 }
